@@ -1,0 +1,114 @@
+---
+title: "04 practical session"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if("librarian" %in% installed.packages()==FALSE) install.packages("librarian")
+librarian::shelf(knitr, prettydoc, ggplot2, cran_repo = 'https://cran.r-project.org')
+```
+
+
+## Q4.5 Testing
+For each of the following, discuss and perform analysis:
+
+### (a) Load the dataset Heart.Monitor.csv
+A study of a new electronic heart monitor was performed on 68 men aged from 50 to 80 years
+old. Each participant was fitted with the new monitor and the currently used monitor. Due to the
+unusual amount of equipment and wires, participants were given a few hours to become accustom
+to wearing the monitors before measurements were taken. Is there any difference between the
+measured heart rates of the two monitors?
+
+```{r Heart Monitor}
+
+heart <- read.csv("Heart.Monitor.csv")
+head(heart)
+boxplot(heart, data=heart)
+t.test(x = heart$Old, y = heart$New, 
+       alternative = "t",
+       mu = 0, paired = TRUE, var.equals = FALSE,
+       conf.level = 0.95)
+# in paired t test we use x - y, so old - new: there is evidence against
+# the H0 (at 5% level) that the two monitors measure the same heart rate 
+# OR: shows a significant (at 5% level) difference between two monitors
+#with mean = -1.41 [95% CI -1.96 to -0.85]
+
+Data <- read.csv("Heart.Monitor.csv")
+
+difference <- Data$Old - Data$New
+average <- (Data$Old + Data$New) / 2
+
+bias <- mean(difference)
+sd_diff <- sd(difference)
+
+lower <- bias - 1.96 * sd_diff
+upper <- bias + 1.96 * sd_diff
+plot(average, difference,
+     xlab = "Average heart rate (bpm)",
+     ylab = "Old - New (bpm)",
+     main = "Bland-Altman Plot")
+
+abline(h = bias, col = "blue", lwd = 2)
+abline(h = c(lower, upper),
+       col = "red", lty = 2)
+abline(h = 0, col = "gray")
+
+```
+
+
+### (b) Load the dataset White.Cell.csv
+A study of white blood cells counts in HIV positive patients with or without co-infection
+with hepititus C was conducted. Thirty co-infected and thirty mono-infected patients were en-
+rolled in the study. Do co-infected patients have a different white blood cell count compared to
+mono-infected?
+```{r White Cell, echo=TRUE}
+cells <- read.csv("White.Cell.csv")
+
+head(cells)
+dim(cells)
+boxplot(cells)
+t.test(cells$Mono, cells$Co,
+       alternative = "two.sided",
+       mu = 0,
+       paired = FALSE, var.equal = FALSE)
+```
+With thiry subjects in each group, there is no evidence against the H0 (at 5% level) that there is no difference between the two groups.
+
+### (c) Load the dataset Twins.csv
+A study of teenage depression was conducted across the UK. Eighty twins aged 15–19 were
+recruited, using an interview and questionnaire the study determined their depression score on a
+0–100 scale. Is there any evidence of a difference in female and male depression scores?
+(Hint: this question involves some additional data manipulation)
+
+```{r Twins non paired, echo = TRUE}
+
+twins <-  read.csv("Twins.csv")
+head(twins)
+twins.male <- subset(twins, Gender == "Male", select = c(Id, Gender, Score))
+twins.female <- subset(twins, Gender == "Female", select = c(Id, Gender, Score))
+twins.male
+twins.female
+t.test(twins.male$Score, twins.female$Score,
+       alternative = "two.sided",
+       mu = 0, var.equal = FALSE)
+```
+
+
+```{r Twins paired, echo=TRUE}
+NEW <- subset(twins, Same =="No")
+head(NEW)
+
+NEW.F <- subset(NEW, Gender == "Female", select = c("Id", "Score"))
+NEW.M <- subset(NEW, Gender == "Male", select = c("Id", "Score"))
+
+WIDE.F <- rename(NEW.F, Score.Female = Score)
+WIDE.M <- rename(NEW.M, Score.Male = Score)
+
+WIDE <- merge(WIDE.F, WIDE.M, by = c("Id"))
+head(WIDE)
+  
+t.test(WIDE$Score.Female, WIDE$Score.Male, 
+       paired = TRUE)
+```
